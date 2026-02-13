@@ -1,0 +1,3 @@
+git remote add origin <new-repo-url>
+# or if origin exists:
+git remote set-url origin <new-repo-url>
