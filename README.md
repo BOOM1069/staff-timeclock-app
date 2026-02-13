@@ -14,7 +14,25 @@ This project includes:
 
 ## Super simple: preview in 5 steps
 
-Run these commands **from this folder** (`staff-timeclock-app`):
+### First: open terminal in your folder
+
+You said your project is here:
+
+`C:\Users\limin\OneDrive\Desktop\BoomClock`
+
+In **PowerShell**:
+
+```powershell
+cd "C:\Users\limin\OneDrive\Desktop\BoomClock"
+```
+
+In **Command Prompt (cmd)**:
+
+```bat
+cd /d C:\Users\limin\OneDrive\Desktop\BoomClock
+```
+
+Then run the steps below in that same terminal.
 
 ### 1) Install Firebase CLI (one-time)
 
