@@ -1,26 +1,24 @@
-# Staff Time Clock App (Homebase Clone)
+# BOOM 106.9 / 1KTV Timeclock Suite
 
-A Homebase-style employee login/logout clone for **BOOM 1069** and **1KTV**.
+This project now includes both:
 
-## Features
+- `admin.html` — Admin Center (payroll, team roster, schedule management, manual timecard edits, DB restore seed).
+- `kiosk.html` — Studio Kiosk (PIN login, clock in/out, active staff board, geofence check).
+- `index.html` — launcher page.
 
-- Multi-location support (switch between BOOM 1069 and 1KTV).
-- Time Clock view with daily roster-style layout.
-- PIN keypad modal for employee clock in / clock out.
-- Clock-in state and last action shown in status columns.
-- Schedule view for weekly planning.
-- Team view with employee search and add-employee flow.
-- Local persistence via `localStorage`.
+## Tech
 
-## Run locally
+- Firebase Auth + Firestore (compat SDK)
+- Tailwind CDN + custom CSS
+
+## Local run
 
 ```bash
 python3 -m http.server 4173
 ```
 
-Then open `http://localhost:4173`.
+Open:
 
-## Demo PINs
-
-- BOOM 1069: `1111`, `2222`, `3333`, `4444`
-- 1KTV: `8888`, `9999`
+- `http://localhost:4173/` (launcher)
+- `http://localhost:4173/admin.html`
+- `http://localhost:4173/kiosk.html`

@@ -1,75 +1,19 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>BOOM 1069 & 1KTV Time Clock</title>
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <header class="topbar">
-      <div class="brand">homebase <span>clone</span></div>
-      <div class="org-controls">
-        <label for="orgSelect">Location</label>
-        <select id="orgSelect"></select>
-      </div>
-      <nav class="nav">
-        <button class="nav-btn active" data-view="clock">Time Clock</button>
-        <button class="nav-btn" data-view="schedule">Schedule</button>
-        <button class="nav-btn" data-view="team">Team</button>
-      </nav>
-      <div class="actions">
-        <button id="dashboardBtn" class="ghost">Access Dashboard</button>
-        <button id="signOutBtn" class="ghost">Sign Out</button>
-      </div>
-    </header>
-
-    <main>
-      <section id="clockView" class="view active">
-        <div class="view-header">
-          <h1>Daily Roster</h1>
-          <button id="openClockModal" class="primary">Time clock</button>
-        </div>
-        <div id="rosterGrid" class="roster-grid"></div>
-      </section>
-
-      <section id="scheduleView" class="view">
-        <div class="view-header"><h1>Weekly Schedule</h1></div>
-        <div id="scheduleGrid" class="schedule-grid"></div>
-      </section>
-
-      <section id="teamView" class="view">
-        <div class="view-header"><h1>Team Members</h1></div>
-        <div class="team-tools">
-          <input id="searchTeam" placeholder="Search employee" />
-          <button id="addEmployeeBtn" class="primary">Add Employee</button>
-        </div>
-        <div id="teamList" class="team-list"></div>
-      </section>
-    </main>
-
-    <dialog id="clockModal" class="clock-modal">
-      <form method="dialog" class="modal-inner" id="clockForm">
-        <button class="close-btn" value="cancel">×</button>
-        <h2>homebase</h2>
-        <label>PIN: <input id="pinInput" maxlength="6" readonly /></label>
-        <div id="keypad" class="keypad"></div>
-        <button class="primary submit" id="submitPin" value="default">Submit</button>
-        <p id="clockMessage"></p>
-      </form>
-    </dialog>
-
-    <dialog id="employeeModal" class="clock-modal">
-      <form method="dialog" class="modal-inner" id="employeeForm">
-        <button class="close-btn" value="cancel">×</button>
-        <h2>Add Team Member</h2>
-        <label>Name <input id="empName" required /></label>
-        <label>Role <input id="empRole" required /></label>
-        <label>PIN <input id="empPin" maxlength="6" required /></label>
-        <button class="primary" value="default">Save</button>
-      </form>
-    </dialog>
-
-    <script src="app.js"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BOOM Timeclock Suite</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gray-100 flex items-center justify-center p-6">
+  <div class="max-w-2xl w-full bg-white rounded-2xl shadow-xl p-8">
+    <h1 class="text-3xl font-black tracking-tight">BOOM 106.9 & 1KTV Timeclock</h1>
+    <p class="text-gray-600 mt-2">Choose a module.</p>
+    <div class="grid sm:grid-cols-2 gap-4 mt-6">
+      <a href="admin.html" class="rounded-xl p-6 bg-[#FF5200] text-white font-bold text-lg hover:opacity-90">Open Admin Center</a>
+      <a href="kiosk.html" class="rounded-xl p-6 bg-black text-white font-bold text-lg hover:opacity-90">Open Studio Kiosk</a>
+    </div>
+  </div>
+</body>
 </html>
