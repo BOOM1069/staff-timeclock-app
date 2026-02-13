@@ -60,21 +60,157 @@
 const appId='boom-clock-70599';
 const firebaseConfig={apiKey:"AIzaSyAgcWV2nt5wqR4WltSQyCFW0n8VF8yxqDc",authDomain:"boom-clock-70599.firebaseapp.com",projectId:"boom-clock-70599",storageBucket:"boom-clock-70599.firebasestorage.app",messagingSenderId:"1087213126999",appId:"1:1087213126999:web:7a711670f1b4977fd8ea12"};
 const initialToken=typeof __initial_auth_token!=='undefined'?__initial_auth_token:null;
-firebase.initializeApp(firebaseConfig); const db=firebase.firestore(); const auth=firebase.auth();
 const BOOM_COORDS={lat:13.1538,lng:-61.2251}; const RADIUS=150;
-let team=[],shifts=[],selectedUser=null,pin="",currentShiftId=null,rosterSub=null,shiftsSub=null;
+const FALLBACK_TEAM=[
+  {email:'jillccruickshank@gmail.com',name:'JILL',role:'ANNOUNCER',pin:'220717'},
+  {email:'imrangloster@gmail.com',name:'SHADY',role:'DJ',pin:'061815'},
+  {email:'djyungsource@gmail.com',name:'Dj YungSource',role:'DJ',pin:'164606'},
+  {email:'snapshotphotos28@gmail.com',name:'Domo Roberts',role:'ANNOUNCER',pin:'720261'}
+];
+let team=[],shifts=[],selectedUser=null,pin="",currentShiftId=null,rosterSub=null,shiftsSub=null,isOfflineMode=false;
+
+firebase.initializeApp(firebaseConfig); const db=firebase.firestore(); const auth=firebase.auth();
 function getCol(name){ return db.collection('artifacts').doc(appId).collection('public').doc('data').collection(name); }
-async function start(){ try{ if(initialToken) await auth.signInWithCustomToken(initialToken); else await auth.signInAnonymously(); auth.onAuthStateChanged(user=>{ if(user){ document.getElementById('log-auth').innerText='AUTH: READY'; document.getElementById('main-instruction').innerText='SELECT PROFILE'; initDatabase(); }});}catch(e){ document.getElementById('log-auth').innerText='AUTH: FAILED'; }}
-function initDatabase(){ if(!auth.currentUser) return; if(rosterSub) rosterSub(); if(shiftsSub) shiftsSub(); rosterSub=getCol('team').onSnapshot(snap=>{ const grid=document.getElementById('roster-grid'); grid.innerHTML=''; team=[]; snap.forEach(doc=>team.push({id:doc.id,...doc.data()})); team.sort((a,b)=>(a.name||'').localeCompare(b.name||'')); if(team.length===0) grid.innerHTML='<div class="col-span-full text-center py-20 text-gray-400 font-bold uppercase">No profiles found. Add them in Admin.</div>'; team.forEach(m=>{ const initials=(m.name||'??').substring(0,2).toUpperCase(); const card=document.createElement('div'); card.className='card'; card.onclick=()=>openPinPad(m); card.innerHTML=`<div class="avatar"><img src="https://unavatar.io/${m.email}?fallback=false" class="w-full h-full object-cover rounded-full" onerror="this.style.display='none';this.parentElement.innerText='${initials}'"></div><div class="name">${(m.name||'').split(' ')[0]}</div><div class="role">${m.role||'Staff'}</div>`; grid.appendChild(card); }); document.getElementById('log-db').innerText='DB: SYNCED'; }); shiftsSub=getCol('shifts').onSnapshot(snap=>{ shifts=[]; snap.forEach(doc=>shifts.push({id:doc.id,...doc.data()})); if(document.getElementById('view-dashboard').classList.contains('active')){ checkMyStatus(); renderLiveGrid(); } }); }
+function setMain(msg){ document.getElementById('main-instruction').innerText=msg; }
+
+async function start(){
+  try{
+    if(initialToken) await auth.signInWithCustomToken(initialToken); else await auth.signInAnonymously();
+    auth.onAuthStateChanged(user=>{ if(user){ document.getElementById('log-auth').innerText='AUTH: READY'; setMain('SELECT PROFILE'); initDatabase(); } });
+  }catch(e){
+    console.error(e);
+    document.getElementById('log-auth').innerText='AUTH: FAILED (offline mode)';
+    enableOfflineMode('AUTH FAILED - using local demo roster');
+  }
+}
+
+function enableOfflineMode(msg){
+  isOfflineMode=true;
+  team=[...FALLBACK_TEAM];
+  shifts=[];
+  setMain('SELECT PROFILE (OFFLINE DEMO MODE)');
+  document.getElementById('log-db').innerText='DB: OFFLINE DEMO';
+  if(msg) console.warn(msg);
+  renderRosterGrid();
+  renderLiveGrid();
+}
+
+function initDatabase(){
+  if (!auth.currentUser) return;
+  if (rosterSub) rosterSub();
+  if (shiftsSub) shiftsSub();
+
+  rosterSub=getCol('team').onSnapshot(snap=>{
+    const next=[];
+    snap.forEach(doc=>next.push({id:doc.id,...doc.data()}));
+    team=next.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    renderRosterGrid();
+    document.getElementById('log-db').innerText='DB: SYNCED';
+  }, err=>{
+    console.error(err);
+    document.getElementById('log-db').innerText='DB: ERROR';
+    if (!isOfflineMode) enableOfflineMode('Roster read failed');
+  });
+
+  shiftsSub=getCol('shifts').onSnapshot(snap=>{
+    shifts=[];
+    snap.forEach(doc=>shifts.push({id:doc.id,...doc.data()}));
+    if (document.getElementById('view-dashboard').classList.contains('active')) {
+      checkMyStatus();
+      renderLiveGrid();
+    }
+  }, err=>{
+    console.error(err);
+    if (!isOfflineMode) {
+      document.getElementById('log-db').innerText='DB: ERROR';
+      enableOfflineMode('Shifts read failed');
+    }
+  });
+}
+
+function renderRosterGrid(){
+  const grid=document.getElementById('roster-grid');
+  grid.innerHTML='';
+  if(!team.length){
+    grid.innerHTML='<div class="col-span-full text-center py-20 text-gray-400 font-bold uppercase">No profiles found. Add them in Admin.</div>';
+    return;
+  }
+  team.forEach(m=>{
+    const initials=(m.name||'??').substring(0,2).toUpperCase();
+    const card=document.createElement('div');
+    card.className='card';
+    card.onclick=()=>openPinPad(m);
+    card.innerHTML=`<div class="avatar"><img src="https://unavatar.io/${m.email}?fallback=false" class="w-full h-full object-cover rounded-full" onerror="this.style.display='none';this.parentElement.innerText='${initials}'"></div><div class="name">${(m.name||'').split(' ')[0]}</div><div class="role">${m.role||'Staff'}</div>`;
+    grid.appendChild(card);
+  });
+}
+
 function openPinPad(user){ selectedUser=user; pin=''; renderDots(); document.getElementById('modal-name').innerText=user.name; document.getElementById('status-msg').innerText='Enter Code'; document.getElementById('status-msg').classList.remove('err-text'); document.getElementById('pin-modal').style.display='flex'; }
 function press(n){ if(pin.length<6){ pin += n; renderDots(); } }
 function resetPin(){ pin=''; renderDots(); }
 function renderDots(){ const d=document.getElementById('dots').children; for(let i=0;i<6;i++) d[i].classList.toggle('filled',i<pin.length); }
-async function submitPin(){ if(pin!==selectedUser.pin){ document.getElementById('status-msg').innerText='WRONG PIN'; document.getElementById('status-msg').classList.add('err-text'); setTimeout(()=>{ document.getElementById('status-msg').innerText='Enter PIN'; document.getElementById('status-msg').classList.remove('err-text'); resetPin(); },1000); return; } const active=shifts.find(s=>s.email===selectedUser.email&&s.status==='open'); if(active) performClockAction(active.id); else { document.getElementById('pin-modal').style.display='none'; showDashboard(); } }
+
+async function submitPin(){
+  if(pin!==selectedUser.pin){
+    document.getElementById('status-msg').innerText='WRONG PIN';
+    document.getElementById('status-msg').classList.add('err-text');
+    setTimeout(()=>{ document.getElementById('status-msg').innerText='Enter PIN'; document.getElementById('status-msg').classList.remove('err-text'); resetPin(); },1000);
+    return;
+  }
+  const active=shifts.find(s=>s.email===selectedUser.email&&s.status==='open');
+  if(active) performClockAction(active.id);
+  else { document.getElementById('pin-modal').style.display='none'; showDashboard(); }
+}
+
 function showDashboard(){ document.getElementById('view-roster').classList.remove('active'); document.getElementById('view-dashboard').classList.add('active'); document.getElementById('dash-name').innerText=selectedUser.name; checkMyStatus(); renderLiveGrid(); }
 function checkMyStatus(){ const active=shifts.find(s=>s.email===selectedUser.email&&s.status==='open'); const btn=document.getElementById('action-btn'),lbl=document.getElementById('btn-label'),bdg=document.getElementById('dash-status-badge'); if(active){ currentShiftId=active.id; btn.className='big-btn btn-red'; lbl.innerText='CLOCK OUT'; bdg.innerText='ON THE CLOCK'; bdg.className='text-xs font-bold uppercase bg-green-100 px-3 py-1 rounded-full text-green-600 mb-8'; } else { currentShiftId=null; btn.className='big-btn btn-green'; lbl.innerText='CLOCK IN'; bdg.innerText='OFF DUTY'; bdg.className='text-xs font-bold uppercase bg-gray-100 px-3 py-1 rounded-full text-gray-400 mb-8'; } }
-function renderLiveGrid(){ const grid=document.getElementById('active-grid'); grid.innerHTML=''; const active=shifts.filter(s=>s.status==='open'); if(!active.length){ grid.innerHTML='<div class="col-span-full text-center text-gray-400 text-xs font-bold uppercase tracking-widest mt-10">Studio is empty.</div>'; return; } active.forEach(s=>{ const mem=team.find(m=>m.email===s.email)||{name:s.name,role:'Staff',email:s.email}; const initials=(mem.name||'??').substring(0,2).toUpperCase(); const card=document.createElement('div'); card.className='card border-green-50 shadow-sm'; card.onclick=()=>openPinPad(mem); card.innerHTML=`<div class="active-dot"></div><div class="avatar"><img src="https://unavatar.io/${s.email}?fallback=false" class="w-full h-full object-cover rounded-full" onerror="this.style.display='none';this.parentElement.innerText='${initials}'"></div><div class="name">${(mem.name||'').split(' ')[0]}</div><div class="role">${mem.role||'Staff'}</div><div class="time-in">IN: ${s.clockIn.toDate().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}</div>`; grid.appendChild(card); }); }
-async function performClockAction(forceId=null){ const id=forceId||currentShiftId; const geoMsg=document.getElementById('geo-msg'); const pinMsg=document.getElementById('status-msg'); const updateStatus=(t)=>{ geoMsg.innerText=t.toUpperCase(); if(document.getElementById('pin-modal').style.display==='flex') pinMsg.innerText=t.toUpperCase(); }; updateStatus('GETTING GPS...'); navigator.geolocation.getCurrentPosition(async(pos)=>{ const R=6371e3, φ1=pos.coords.latitude*Math.PI/180, φ2=BOOM_COORDS.lat*Math.PI/180, Δφ=(BOOM_COORDS.lat-pos.coords.latitude)*Math.PI/180, Δλ=(BOOM_COORDS.lng-pos.coords.longitude)*Math.PI/180; const a=Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2; const dist=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a)); if(dist>RADIUS){ alert(`ACCESS DENIED: You are ${Math.round(dist)}m away from BOOM building.`); updateStatus('Range Failed'); return; } updateStatus('SYNCING...'); const ref=getCol('shifts'); if(id){ await ref.doc(id).update({clockOut:firebase.firestore.FieldValue.serverTimestamp(),status:'closed'}); logout(); } else { await ref.add({email:selectedUser.email,name:selectedUser.name,clockIn:firebase.firestore.FieldValue.serverTimestamp(),status:'open'}); checkMyStatus(); } document.getElementById('pin-modal').style.display='none'; updateStatus('GEOFENCE ACTIVE'); },()=>{ alert('GPS Required for clock actions.'); updateStatus('GPS Error'); },{enableHighAccuracy:true,timeout:5000}); }
+
+function renderLiveGrid(){
+  const grid=document.getElementById('active-grid');
+  grid.innerHTML='';
+  const active=shifts.filter(s=>s.status==='open');
+  if(!active.length){ grid.innerHTML='<div class="col-span-full text-center text-gray-400 text-xs font-bold uppercase tracking-widest mt-10">Studio is empty.</div>'; return; }
+  active.forEach(s=>{
+    const mem=team.find(m=>m.email===s.email)||{name:s.name,role:'Staff',email:s.email};
+    const initials=(mem.name||'??').substring(0,2).toUpperCase();
+    const card=document.createElement('div');
+    card.className='card border-green-50 shadow-sm';
+    card.onclick=()=>openPinPad(mem);
+    const clockInText=s.clockIn?.toDate ? s.clockIn.toDate().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '--:--';
+    card.innerHTML=`<div class="active-dot"></div><div class="avatar"><img src="https://unavatar.io/${s.email}?fallback=false" class="w-full h-full object-cover rounded-full" onerror="this.style.display='none';this.parentElement.innerText='${initials}'"></div><div class="name">${(mem.name||'').split(' ')[0]}</div><div class="role">${mem.role||'Staff'}</div><div class="time-in">IN: ${clockInText}</div>`;
+    grid.appendChild(card);
+  });
+}
+
+async function performClockAction(forceId=null){
+  if(isOfflineMode){
+    const openShift=shifts.find(s=>s.email===selectedUser.email&&s.status==='open');
+    if(openShift) openShift.status='closed';
+    else shifts.push({id:String(Date.now()),email:selectedUser.email,name:selectedUser.name,clockIn:new Date(),status:'open'});
+    checkMyStatus(); renderLiveGrid();
+    document.getElementById('pin-modal').style.display='none';
+    return;
+  }
+
+  const id=forceId||currentShiftId;
+  const geoMsg=document.getElementById('geo-msg');
+  const pinMsg=document.getElementById('status-msg');
+  const updateStatus=(t)=>{ geoMsg.innerText=t.toUpperCase(); if(document.getElementById('pin-modal').style.display==='flex') pinMsg.innerText=t.toUpperCase(); };
+  updateStatus('GETTING GPS...');
+  navigator.geolocation.getCurrentPosition(async(pos)=>{
+    const R=6371e3, φ1=pos.coords.latitude*Math.PI/180, φ2=BOOM_COORDS.lat*Math.PI/180, Δφ=(BOOM_COORDS.lat-pos.coords.latitude)*Math.PI/180, Δλ=(BOOM_COORDS.lng-pos.coords.longitude)*Math.PI/180;
+    const a=Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+    const dist=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+    if(dist>RADIUS){ alert(`ACCESS DENIED: You are ${Math.round(dist)}m away from BOOM building.`); updateStatus('Range Failed'); return; }
+    updateStatus('SYNCING...');
+    const ref=getCol('shifts');
+    if(id){ await ref.doc(id).update({clockOut:firebase.firestore.FieldValue.serverTimestamp(),status:'closed'}); logout(); }
+    else { await ref.add({email:selectedUser.email,name:selectedUser.name,clockIn:firebase.firestore.FieldValue.serverTimestamp(),status:'open'}); checkMyStatus(); }
+    document.getElementById('pin-modal').style.display='none';
+    updateStatus('GEOFENCE ACTIVE');
+  },()=>{ alert('GPS Required for clock actions.'); updateStatus('GPS Error'); },{enableHighAccuracy:true,timeout:5000});
+}
+
 function logout(){ document.getElementById('view-dashboard').classList.remove('active'); document.getElementById('view-roster').classList.add('active'); document.getElementById('pin-modal').style.display='none'; selectedUser=null; pin=''; }
 window.addEventListener('keydown',(e)=>{ if(document.getElementById('pin-modal').style.display!=='flex') return; if(e.key>='0'&&e.key<='9') press(e.key); else if(e.key==='Backspace') resetPin(); else if(e.key==='Enter') submitPin(); else if(e.key==='Escape') logout(); });
 setInterval(()=>{ document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); },1000);

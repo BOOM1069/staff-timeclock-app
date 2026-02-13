@@ -146,3 +146,19 @@ firebase use boom-clock-70599
 ### "Permission denied on deploy"
 
 Your logged-in Google account needs Hosting access for project `boom-clock-70599`.
+
+
+### "AUTH: FAILED" on kiosk screen
+
+This usually means Firebase Authentication is blocked for your project/environment (for example anonymous auth disabled, API key restrictions, or auth domain mismatch).
+
+Quick workaround:
+
+- The kiosk now auto-falls back to **OFFLINE DEMO MODE** so you can still test profile selection and PIN flow.
+
+To use live Firebase data, check in Firebase Console:
+
+1. **Authentication > Sign-in method**: enable **Anonymous**.
+2. **Authentication > Settings > Authorized domains**: include `localhost`.
+3. If API key restrictions are enabled, allow local web usage for this app.
+
