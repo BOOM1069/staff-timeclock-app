@@ -1,0 +1,52 @@
+:root {
+  --purple: #2e0a55;
+  --accent: #7e44d8;
+  --bg: #f7f7f4;
+  --line: #ddd8d2;
+}
+* { box-sizing: border-box; font-family: Inter, system-ui, sans-serif; }
+body { margin: 0; background: var(--bg); color: #1e1238; }
+.topbar {
+  background: var(--purple); color: #fff; display: grid; grid-template-columns: 1fr auto auto auto;
+  gap: 1rem; align-items: center; padding: 0.8rem 1.2rem;
+}
+.brand { font-size: 2rem; font-weight: 800; }
+.brand span { font-size: 1rem; font-weight: 500; opacity: 0.8; margin-left: .3rem; }
+.org-controls { display: flex; align-items: center; gap: .5rem; }
+select, input { padding: .5rem .6rem; border-radius: 8px; border: 1px solid #c8c1d6; }
+.nav { display: flex; gap: .5rem; }
+.nav-btn,.ghost,.primary { border: none; border-radius: 10px; cursor: pointer; padding: .55rem .9rem; }
+.nav-btn { background: transparent; color: #d6c2ff; }
+.nav-btn.active { background: #ffffff2a; color: #fff; }
+.actions { display:flex; gap: .5rem; }
+.ghost { background: #fff1; color: #fff; }
+main { padding: 1rem; }
+.view { display: none; }
+.view.active { display: block; }
+.view-header { display:flex; justify-content: space-between; align-items:center; margin-bottom: 1rem; }
+.primary { background: var(--accent); color: white; font-weight: 700; }
+.roster-grid,.schedule-grid {
+  background: white; border: 1px solid var(--line); border-radius: 12px; overflow: hidden;
+}
+.roster-head,.roster-row,.schedule-head,.schedule-row { display:grid; grid-template-columns: 220px repeat(12, 1fr) 110px 110px; }
+.roster-head>div,.roster-row>div,.schedule-head>div,.schedule-row>div{ border-right: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: .6rem; min-height: 52px; }
+.employee-block { background: #b4d7b8; border-radius: 10px; padding: .45rem .6rem; }
+.employee-block .name { font-weight: 800; font-size: 1.05rem; }
+.employee-block.purple { background: #d1bff0; }
+.status.badge { color: #be2d00; font-weight:700; }
+.team-tools { display:flex; gap:.6rem; margin-bottom:.8rem; }
+.team-list { background:white; border:1px solid var(--line); border-radius:12px; }
+.team-item { display:flex; justify-content: space-between; padding:.7rem .9rem; border-bottom:1px solid var(--line); }
+.team-item:last-child{ border-bottom:none; }
+.clock-modal { border:none; border-radius: 18px; padding:0; width:min(540px,95vw); }
+.modal-inner { padding:1.2rem; display:flex; flex-direction:column; gap:.8rem; }
+.close-btn { align-self:flex-end; border:none; background:transparent; font-size:2rem; color:var(--accent); cursor:pointer; }
+.modal-inner h2 { text-align:center; color:var(--accent); font-size: 2.5rem; margin:.2rem 0; }
+.keypad { display:grid; grid-template-columns: repeat(3,1fr); gap:.5rem; }
+.keypad button{ font-size:2rem; border:none; background:#fff; color:var(--accent); padding:.3rem; border-radius:8px; cursor:pointer; }
+.submit { margin-top:.4rem; }
+#clockMessage { min-height: 1.3rem; text-align:center; font-weight:700; }
+@media (max-width:1000px){
+  .topbar { grid-template-columns:1fr; }
+  .roster-head,.roster-row,.schedule-head,.schedule-row { grid-template-columns: 180px repeat(6,1fr) 80px 80px; }
+}
