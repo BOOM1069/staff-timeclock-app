@@ -1,3 +1,18 @@
-git remote add origin <new-repo-url>
-# or if origin exists:
-git remote set-url origin <new-repo-url>
+# confirm you're in the right repo
+pwd
+git branch --show-current
+
+# (optional) save any uncommitted work first
+git status
+
+# remove old origin if it exists (safe if it doesn't)
+git remote remove origin 2>/dev/null || true
+
+# add your new GitHub repo as origin
+git remote add origin https://github.com/<YOUR_GITHUB_USERNAME>/staff-timeclock-app.git
+
+# verify remote
+git remote -v
+
+# push current branch (your branch appears to be: work)
+git push -u origin work
