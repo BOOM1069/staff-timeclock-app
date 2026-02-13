@@ -162,3 +162,23 @@ To use live Firebase data, check in Firebase Console:
 2. **Authentication > Settings > Authorized domains**: include `localhost`.
 3. If API key restrictions are enabled, allow local web usage for this app.
 
+
+
+### "I am not seeing anything new"
+
+Try this exact checklist:
+
+1. Hard refresh page: **Ctrl + F5**.
+2. Open direct page (not old tab): `http://localhost:5000/kiosk.html`.
+3. You should now see a top mode bar:
+   - `LIVE MODE: FIREBASE CONNECTED` (green), or
+   - `OFFLINE DEMO MODE: FIREBASE UNAVAILABLE` (orange).
+4. If still old UI, stop and restart hosting server:
+
+```bash
+Ctrl + C
+firebase serve --only hosting
+```
+
+5. If needed, open in Incognito window to bypass cache/extensions.
+

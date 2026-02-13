@@ -51,6 +51,7 @@
 </head>
 <body>
 <div class="header"><div><div class="brand-main">BOOM <span class="text-brand">106.9</span></div><div class="brand-sub">1KTV <span class="text-brand">112</span></div></div><div class="clock" id="clock">--:--</div></div>
+<div id="mode-banner" style="display:none;padding:10px 16px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase"></div>
 <div id="view-roster" class="view active"><div class="p-4 text-center text-gray-400 text-xs font-bold uppercase" id="main-instruction">Initializing...</div><div class="grid-container" id="roster-grid"></div></div>
 <div id="view-dashboard" class="view"><div class="dash-layout"><div class="dash-action"><h2 class="text-2xl font-black italic mb-2" id="dash-name">USER</h2><div id="dash-status-badge" class="text-xs font-bold uppercase bg-gray-100 px-3 py-1 rounded-full text-gray-500 mb-8">Checking...</div><div id="action-btn" class="big-btn" onclick="performClockAction()"><span class="material-icons-round text-5xl mb-2">fingerprint</span><span id="btn-label">WAIT</span></div><div id="geo-msg" class="mt-6 text-[10px] uppercase font-black text-gray-400">GEOFENCE ACTIVE</div></div><div class="dash-live"><div class="p-4 border-b bg-white font-bold text-xs flex justify-between"><span>LIVE IN STUDIO</span><div class="text-green-500 tracking-widest">● LIVE</div></div><div class="grid-container" id="active-grid"></div></div></div><div class="footer"><button class="btn-back" onclick="logout()"><span class="material-icons-round">group</span> Switch User</button></div></div>
 <div id="pin-modal" class="modal-overlay"><div class="modal-box shadow-2xl"><h2 class="text-xl font-black text-gray-900 mb-6 uppercase" id="modal-name">User</h2><div class="pin-dots" id="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div class="keypad"><div class="key" onclick="press(1)">1</div><div class="key" onclick="press(2)">2</div><div class="key" onclick="press(3)">3</div><div class="key" onclick="press(4)">4</div><div class="key" onclick="press(5)">5</div><div class="key" onclick="press(6)">6</div><div class="key" onclick="press(7)">7</div><div class="key" onclick="press(8)">8</div><div class="key" onclick="press(9)">9</div><div class="key text-red-500 text-xs font-black" onclick="resetPin()">CLR</div><div class="key" onclick="press(0)">0</div><div class="key bg-brand text-white" onclick="submitPin()"><span class="material-icons-round">arrow_forward</span></div></div><div class="status-msg" id="status-msg">Enter PIN</div></div></div>
@@ -68,15 +69,49 @@ const FALLBACK_TEAM=[
   {email:'snapshotphotos28@gmail.com',name:'Domo Roberts',role:'ANNOUNCER',pin:'720261'}
 ];
 let team=[],shifts=[],selectedUser=null,pin="",currentShiftId=null,rosterSub=null,shiftsSub=null,isOfflineMode=false;
+let authResolved=false;
 
 firebase.initializeApp(firebaseConfig); const db=firebase.firestore(); const auth=firebase.auth();
 function getCol(name){ return db.collection('artifacts').doc(appId).collection('public').doc('data').collection(name); }
 function setMain(msg){ document.getElementById('main-instruction').innerText=msg; }
+function setModeBanner(mode, text){
+  const el = document.getElementById('mode-banner');
+  el.style.display='block';
+  if(mode==='live'){
+    el.style.background='#dcfce7';
+    el.style.color='#166534';
+  } else if(mode==='connecting'){
+    el.style.background='#e0e7ff';
+    el.style.color='#3730a3';
+  } else {
+    el.style.background='#fff7ed';
+    el.style.color='#9a3412';
+  }
+  el.innerText=text;
+}
 
 async function start(){
+  setModeBanner('connecting', 'CONNECTING TO FIREBASE...');
+  setTimeout(() => {
+    if (!authResolved && !isOfflineMode) {
+      document.getElementById('log-auth').innerText='AUTH: TIMEOUT (offline mode)';
+      enableOfflineMode('Auth timeout - using local demo roster');
+    }
+  }, 5000);
   try{
     if(initialToken) await auth.signInWithCustomToken(initialToken); else await auth.signInAnonymously();
-    auth.onAuthStateChanged(user=>{ if(user){ document.getElementById('log-auth').innerText='AUTH: READY'; setMain('SELECT PROFILE'); initDatabase(); } });
+    auth.onAuthStateChanged(user=>{
+      authResolved = true;
+      if(user){
+        document.getElementById('log-auth').innerText='AUTH: READY';
+        setModeBanner('live', 'LIVE MODE: FIREBASE CONNECTED');
+        setMain('SELECT PROFILE');
+        initDatabase();
+      } else if(!isOfflineMode) {
+        document.getElementById('log-auth').innerText='AUTH: NO USER (offline mode)';
+        enableOfflineMode('No auth user - using local demo roster');
+      }
+    });
   }catch(e){
     console.error(e);
     document.getElementById('log-auth').innerText='AUTH: FAILED (offline mode)';
@@ -86,6 +121,7 @@ async function start(){
 
 function enableOfflineMode(msg){
   isOfflineMode=true;
+  setModeBanner('offline', 'OFFLINE DEMO MODE: FIREBASE UNAVAILABLE');
   team=[...FALLBACK_TEAM];
   shifts=[];
   setMain('SELECT PROFILE (OFFLINE DEMO MODE)');
