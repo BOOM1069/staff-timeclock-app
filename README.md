@@ -1,6 +1,6 @@
 # BOOM 106.9 / 1KTV Timeclock Suite
 
-This project now includes both:
+This project includes:
 
 - `admin.html` — Admin Center (payroll, team roster, schedule management, manual timecard edits, DB restore seed).
 - `kiosk.html` — Studio Kiosk (PIN login, clock in/out, active staff board, geofence check).
@@ -9,16 +9,37 @@ This project now includes both:
 ## Tech
 
 - Firebase Auth + Firestore (compat SDK)
+- Firebase Hosting
 - Tailwind CDN + custom CSS
 
-## Local run
+## Run with Firebase (same workflow you were using)
+
+1. Install Firebase CLI (if needed):
 
 ```bash
-python3 -m http.server 4173
+npm install -g firebase-tools
 ```
 
-Open:
+2. Login:
 
-- `http://localhost:4173/` (launcher)
-- `http://localhost:4173/admin.html`
-- `http://localhost:4173/kiosk.html`
+```bash
+firebase login
+```
+
+3. Serve locally with Firebase Hosting:
+
+```bash
+firebase serve --only hosting
+```
+
+4. Open:
+
+- `http://localhost:5000/` (launcher)
+- `http://localhost:5000/admin.html`
+- `http://localhost:5000/kiosk.html`
+
+## Deploy
+
+```bash
+firebase deploy --only hosting
+```
