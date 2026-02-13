@@ -2,183 +2,82 @@
 
 This project includes:
 
-- `admin.html` — Admin Center (payroll, team roster, schedule management, manual timecard edits, DB restore seed).
-- `kiosk.html` — Studio Kiosk (PIN login, clock in/out, active staff board, geofence check).
-- `index.html` — launcher page.
+- `admin.html` — Admin Center
+- `kiosk.html` — Studio Kiosk
+- `index.html` — launcher page
 
-## Tech
+## Fastest preview on Windows
 
-- Firebase Auth + Firestore (compat SDK)
-- Firebase Hosting
-- Tailwind CDN + custom CSS
-
-## Super simple: preview in 5 steps
-
-### First: open terminal in your folder
-
-You said your project is here:
+From your folder:
 
 `C:\Users\limin\OneDrive\Desktop\BoomClock`
 
-In **PowerShell**:
-
-```powershell
-cd "C:\Users\limin\OneDrive\Desktop\BoomClock"
-```
-
-In **Command Prompt (cmd)**:
+Run either:
 
 ```bat
-cd /d C:\Users\limin\OneDrive\Desktop\BoomClock
+preview.bat
 ```
 
-Then run the steps below in that same terminal.
+or PowerShell:
 
-### 1) Install Firebase CLI (one-time)
+```powershell
+.\preview.ps1
+```
+
+Then open:
+
+- `http://127.0.0.1:5000/`
+- `http://127.0.0.1:5000/admin.html`
+- `http://127.0.0.1:5000/kiosk.html`
+
+---
+
+## Manual Firebase commands
 
 ```bash
 npm install -g firebase-tools
-```
-
-### 2) Sign in to Firebase (one-time)
-
-```bash
 firebase login
+firebase use boom-clock-70599
+firebase serve --only hosting --host 127.0.0.1 --port 5000
 ```
 
-### 3) Confirm project is BOOM
-
-```bash
-firebase use
-```
-
-You should see `boom-clock-70599` (this repo already sets it in `.firebaserc`).
-
-### 4) Start local preview
-
-```bash
-firebase serve --only hosting
-```
-
-Wait for output like:
-
-- `Local URL: http://localhost:5000`
-
-### 5) Open in browser
-
-- `http://localhost:5000/`
-- `http://localhost:5000/admin.html`
-- `http://localhost:5000/kiosk.html`
-
----
-
-
-## "firebase serve" looks stalled? (this is normal)
-
-When you run:
-
-```bash
-firebase serve --only hosting
-```
-
-and see:
-
-- `Local server: http://localhost:5000`
-- request logs like `GET / HTTP/1.1 200`
-
-that means it is working correctly and waiting for browser traffic. It does **not** exit on its own.
-
-What to do:
-
-1. Keep that terminal open while testing pages in browser.
-2. Open:
-   - `http://localhost:5000/`
-   - `http://localhost:5000/admin.html`
-   - `http://localhost:5000/kiosk.html`
-3. When done, stop server with `Ctrl + C`.
-
-### About `GET /favicon.ico` 404
-
-That log line is harmless. Browser is requesting a favicon file that does not exist yet; your app still works.
-
----
-
-## Deploy to live Firebase Hosting
-
-When the preview looks good:
+Deploy:
 
 ```bash
 firebase deploy --only hosting
 ```
 
-Firebase prints the live Hosting URL at the end.
+---
+
+## If you cannot open any HTTP site
+
+Use this checklist exactly:
+
+1. **Make sure server is running** and shows:
+   - `Local server: http://127.0.0.1:5000`
+2. Open **127.0.0.1** URL directly (not just `localhost`):
+   - `http://127.0.0.1:5000/`
+3. Hard refresh browser: **Ctrl + F5**.
+4. Try Incognito window.
+5. Check if port is busy:
+   ```bat
+   netstat -ano | findstr :5000
+   ```
+6. If 5000 is blocked, run different port:
+   ```bash
+   firebase serve --only hosting --host 127.0.0.1 --port 8080
+   ```
+   then open `http://127.0.0.1:8080/`.
+7. If still blocked, check Windows Firewall / antivirus web shield for localhost blocking.
 
 ---
 
-## If you get errors
+## Kiosk mode meaning
 
-### "firebase: command not found"
+- Green banner: `LIVE MODE: FIREBASE CONNECTED`
+- Orange banner: `OFFLINE DEMO MODE: FIREBASE UNAVAILABLE`
 
-Install CLI again:
+If you see offline mode and want live data:
 
-```bash
-npm install -g firebase-tools
-```
-
-Then restart terminal and run:
-
-```bash
-firebase --version
-```
-
-### "Not logged in"
-
-```bash
-firebase login
-```
-
-### "Wrong Firebase project"
-
-```bash
-firebase use boom-clock-70599
-```
-
-### "Permission denied on deploy"
-
-Your logged-in Google account needs Hosting access for project `boom-clock-70599`.
-
-
-### "AUTH: FAILED" on kiosk screen
-
-This usually means Firebase Authentication is blocked for your project/environment (for example anonymous auth disabled, API key restrictions, or auth domain mismatch).
-
-Quick workaround:
-
-- The kiosk now auto-falls back to **OFFLINE DEMO MODE** so you can still test profile selection and PIN flow.
-
-To use live Firebase data, check in Firebase Console:
-
-1. **Authentication > Sign-in method**: enable **Anonymous**.
-2. **Authentication > Settings > Authorized domains**: include `localhost`.
-3. If API key restrictions are enabled, allow local web usage for this app.
-
-
-
-### "I am not seeing anything new"
-
-Try this exact checklist:
-
-1. Hard refresh page: **Ctrl + F5**.
-2. Open direct page (not old tab): `http://localhost:5000/kiosk.html`.
-3. You should now see a top mode bar:
-   - `LIVE MODE: FIREBASE CONNECTED` (green), or
-   - `OFFLINE DEMO MODE: FIREBASE UNAVAILABLE` (orange).
-4. If still old UI, stop and restart hosting server:
-
-```bash
-Ctrl + C
-firebase serve --only hosting
-```
-
-5. If needed, open in Incognito window to bypass cache/extensions.
-
+1. Firebase Console → Authentication → Sign-in method → enable **Anonymous**.
+2. Firebase Console → Authentication → Settings → add `localhost` to authorized domains.
