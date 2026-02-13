@@ -72,6 +72,37 @@ Wait for output like:
 
 ---
 
+
+## "firebase serve" looks stalled? (this is normal)
+
+When you run:
+
+```bash
+firebase serve --only hosting
+```
+
+and see:
+
+- `Local server: http://localhost:5000`
+- request logs like `GET / HTTP/1.1 200`
+
+that means it is working correctly and waiting for browser traffic. It does **not** exit on its own.
+
+What to do:
+
+1. Keep that terminal open while testing pages in browser.
+2. Open:
+   - `http://localhost:5000/`
+   - `http://localhost:5000/admin.html`
+   - `http://localhost:5000/kiosk.html`
+3. When done, stop server with `Ctrl + C`.
+
+### About `GET /favicon.ico` 404
+
+That log line is harmless. Browser is requesting a favicon file that does not exist yet; your app still works.
+
+---
+
 ## Deploy to live Firebase Hosting
 
 When the preview looks good:
