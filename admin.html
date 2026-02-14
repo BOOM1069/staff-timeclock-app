@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOOM | ADMIN CENTER</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #F3F4F6; height: 100vh; overflow: hidden; display: flex; }
+        #sidebar { width: 260px; background-color: #FF5200; color: white; flex-shrink: 0; display: flex; flex-direction: column; z-index: 40; height: 100vh; }
+        .brand-box { height: 100px; display: flex; flex-direction: column; justify-content: center; padding: 0 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .brand-text { font-weight: 900; font-style: italic; line-height: 0.9; letter-spacing: -0.05em; color: white; text-transform: uppercase; font-size: 26px; }
+        .nav-item { display: flex; align-items: center; padding: 14px 24px; cursor: pointer; font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.9); transition: 0.1s; }
+        .nav-item:hover { background-color: rgba(255,255,255,0.15); }
+        .nav-item.active { background-color: white; color: #FF5200; font-weight: 800; border-radius: 0 24px 24px 0; margin-right: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: white; position: relative; }
+        .view { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+        .view.active { display: flex; }
+        .table-head { position: sticky; top: 0; background: #F9FAFB; border-bottom: 1px solid #E5E7EB; z-index: 10; font-size: 11px; font-weight: 700; color: #6B7280; text-transform: uppercase; }
+        .table-row { border-bottom: 1px solid #F3F4F6; }
+        .table-cell { padding: 16px; font-size: 14px; color: #1F2937; vertical-align: middle; }
+        .sch-header { display: grid; grid-template-columns: 200px repeat(7, 1fr); background: #F9FAFB; border-bottom: 1px solid #E5E7EB; height: 48px; }
+        .sch-col { display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #6B7280; border-right: 1px solid #E5E7EB; }
+        .sch-row { display: grid; grid-template-columns: 200px repeat(7, 1fr); border-bottom: 1px solid #E5E7EB; min-height: 80px; }
+        .user-col { padding: 0 16px; border-right: 1px solid #E5E7EB; background: white; position: sticky; left: 0; display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 13px; z-index: 10; }
+        .day-col { border-right: 1px solid #E5E7EB; padding: 4px; position: relative; }
+        .shift { background: #166534; color: white; padding: 4px 6px; border-radius: 4px; font-size: 10px; font-weight: 700; margin-bottom: 4px; cursor: pointer; }
+        .shift.announcer { background: #7e22ce; }
+        .payroll-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 60px; align-items: center; padding: 12px 24px; border-bottom: 1px solid #F3F4F6; }
+        .employee-summary { background: #F9FAFB; border-top: 2px solid #E5E7EB; font-weight: 800; cursor: pointer; }
+        .punch-detail { font-size: 12px; color: #6B7280; background: white; }
+        .tab { padding: 12px 24px; font-weight: 700; font-size: 13px; color: #9CA3AF; cursor: pointer; border-bottom: 2px solid transparent; }
+        .tab.active { color: #FF5200; border-bottom-color: #FF5200; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); z-index: 100; display: none; align-items: center; justify-content: center; }
+        .modal-content { background: white; width: 100%; max-width: 450px; border-radius: 20px; padding: 32px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); }
+        .hidden { display: none !important; }
+        input, select { border: 1px solid #D1D5DB; padding: 10px; border-radius: 6px; width: 100%; outline: none; background: #F9FAFB; }
+        #restore-btn { animation: pulse 2s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.8; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+<div id="sidebar">
+  <div class="brand-box"><div class="brand-text">BOOM 1069</div><div class="brand-text" style="margin-top:-4px">1KTV 112</div></div>
+  <div class="py-6 flex-1">
+    <div class="nav-item active" onclick="nav('timesheets')" id="btn-timesheets"><span class="material-icons-round mr-3">payments</span> Payroll</div>
+    <div class="nav-item" onclick="nav('schedule')" id="btn-schedule"><span class="material-icons-round mr-3">calendar_today</span> Schedule</div>
+    <div class="nav-item" onclick="nav('team')" id="btn-team"><span class="material-icons-round mr-3">group</span> Staff Roster</div>
+  </div>
+</div>
+<div id="main">
+  <header class="h-16 border-b border-gray-200 flex justify-between items-center px-6 bg-white"><h2 class="text-xl font-bold">Payroll</h2><div id="status-chip" class="text-xs font-bold text-gray-500 bg-gray-100 px-3 py-1 rounded-full uppercase">Connecting...</div></header>
+  <div id="view-timesheets" class="view active">
+    <div class="flex border-b bg-white"><div class="tab active" id="tab-daily" onclick="setPayrollMode('daily')">Daily Review</div><div class="tab" id="tab-period" onclick="setPayrollMode('period')">Pay Period Review</div></div>
+    <div class="p-6 border-b flex justify-between items-center bg-white">
+      <div class="flex items-center gap-4"><div id="daily-controls" class="flex items-center gap-2 border border-gray-300 rounded-lg p-1 bg-gray-50"><button onclick="dateShift(-1)">◀</button><input type="date" id="ts-date" onchange="loadData()"><button onclick="dateShift(1)">▶</button></div></div>
+      <div class="text-right"><div class="text-[10px] font-bold text-gray-400 uppercase">Daily Gross</div><div class="text-2xl font-black text-[#FF5200]" id="ts-total">$0.00</div></div>
+    </div>
+    <div class="flex-1 overflow-auto bg-white" id="payroll-list"></div>
+  </div>
+  <div id="view-schedule" class="view">
+    <div class="p-4 border-b flex justify-between items-center bg-white"><div id="sch-range" class="font-bold">Week</div><button onclick="openModal('modal-shift')" class="bg-[#FF5200] text-white px-4 py-2 rounded-lg font-bold text-sm">Add Shift</button></div>
+    <div class="overflow-auto" id="sch-grid-mount"></div>
+  </div>
+  <div id="view-team" class="view">
+    <div class="p-6 flex justify-end bg-white border-b gap-2"><button id="restore-btn" onclick="forceSeed()" class="bg-red-600 text-white px-4 py-2 rounded-lg font-bold text-sm">RESTORE DATABASE</button><button onclick="openModal('modal-member')" class="bg-black text-white px-6 py-2 rounded-lg font-bold text-sm">Add Staff</button></div>
+    <div class="flex-1 overflow-auto"><table class="w-full text-left"><thead class="table-head"><tr><th class="table-cell">Name</th><th class="table-cell">Role</th><th class="table-cell">Wage</th><th class="table-cell">PIN</th><th class="table-cell text-right">Actions</th></tr></thead><tbody id="team-body"></tbody></table></div>
+  </div>
+</div>
+
+<div id="modal-member" class="modal-overlay"><div class="modal-content"><h3 class="text-xl font-bold mb-4">Staff Details</h3><input type="hidden" id="m-id"><label>Full Name</label><input type="text" id="m-name"><label>Email</label><input type="email" id="m-email"><div class="flex gap-3"><div class="flex-1"><label>Role</label><input type="text" id="m-role"></div><div class="flex-1"><label>Wage</label><input type="number" id="m-wage" step="0.01"></div></div><label>Access PIN</label><input type="text" id="m-pin"><div class="flex gap-2 mt-4"><button onclick="closeModal('modal-member')" class="flex-1 py-3">Cancel</button><button onclick="saveMember()" class="flex-1 py-3 bg-[#FF5200] text-white rounded-xl">Save</button></div></div></div>
+<div id="modal-shift" class="modal-overlay"><div class="modal-content"><h3 class="text-xl font-bold mb-4">Schedule Shift</h3><input type="hidden" id="s-id"><label>Staff Member</label><select id="s-staff"></select><label>Start Time</label><input type="datetime-local" id="s-start"><label>End Time</label><input type="datetime-local" id="s-end"><div class="flex gap-2 mt-4"><button onclick="closeModal('modal-shift')" class="flex-1 py-3">Cancel</button><button id="s-del-btn" onclick="deleteShift()" class="hidden bg-red-100 text-red-600 px-4 rounded-xl font-bold">Delete</button><button onclick="saveShift()" class="flex-1 py-3 bg-black text-white rounded-xl">Save</button></div></div></div>
+<div id="modal-tc" class="modal-overlay"><div class="modal-content"><h3 class="text-xl font-bold mb-4">Edit Time Punch</h3><input type="hidden" id="tc-id"><label>Clock In</label><input type="datetime-local" id="tc-in"><label>Clock Out</label><input type="datetime-local" id="tc-out"><div class="flex gap-2 mt-4"><button onclick="closeModal('modal-tc')" class="flex-1 py-3">Cancel</button><button onclick="saveTimecard()" class="flex-1 py-3 bg-black text-white rounded-xl">Update</button></div></div></div>
+
+<script>
+const appId = typeof __app_id !== 'undefined' ? __app_id : 'boom-clock-70599';
+const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : { apiKey: "AIzaSyAgcWV2nt5wqR4WltSQyCFW0n8VF8yxqDc", authDomain: "boom-clock-70599.firebaseapp.com", projectId: "boom-clock-70599", storageBucket: "boom-clock-70599.firebasestorage.app", messagingSenderId: "1087213126999", appId: "1:1087213126999:web:7a711670f1b4977fd8ea12" };
+const initialToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore(); const auth = firebase.auth();
+const CSV_ROSTER = [{name:"JILL", email:"jillccruickshank@gmail.com", role:"ANNOUNCER", wage:0, pin:"220717"},{name:"SHADY", email:"imrangloster@gmail.com", role:"DJ", wage:0, pin:"061815"},{name:"Dj YungSource", email:"djyungsource@gmail.com", role:"DJ", wage:12, pin:"164606"},{name:"Domo Roberts", email:"snapshotphotos28@gmail.com", role:"ANNOUNCER", wage:13, pin:"720261"}];
+function getCol(name) { return db.collection('artifacts').doc(appId).collection('public').doc('data').collection(name); }
+function safeSetText(id, t) { const e=document.getElementById(id); if(e) e.innerText=t; }
+let team = {}, shifts = [], schedule = [], weekStart = new Date(), payrollMode = 'daily';
+const d = weekStart.getDay(), diff = weekStart.getDate() - d + (d==0 ? -6 : 1); weekStart.setDate(diff);
+async function init(){ try{ if(initialToken) await auth.signInWithCustomToken(initialToken); else await auth.signInAnonymously(); auth.onAuthStateChanged(u=>{ if(u){ safeSetText('status-chip','ONLINE'); loadData(); }});}catch(e){console.error(e);} }
+async function loadData(){
+ const tSnap = await getCol('team').get(); team = {}; if(tSnap.empty){ await forceSeed(false); return; } tSnap.forEach(doc=>team[doc.id]=doc.data());
+ const sSnap = await getCol('shifts').get(); shifts = sSnap.docs.map(doc=>({id:doc.id,...doc.data()}));
+ const schSnap = await getCol('schedule').get(); schedule = schSnap.docs.map(doc=>({id:doc.id,...doc.data()}));
+ renderTeam(); renderTimesheets(); renderGrid(); updateStaffSelect();
+}
+async function forceSeed(confirmAction=true){ if(confirmAction && !confirm('Reset database with CSV data?')) return; const batch=db.batch(); CSV_ROSTER.forEach(m=>batch.set(getCol('team').doc(m.email),m)); await batch.commit(); if(confirmAction) alert('Database Refreshed!'); loadData(); }
+function updateStaffSelect(){ const sel=document.getElementById('s-staff'); if(!sel) return; const members=Object.values(team).sort((a,b)=>(a.name||'').localeCompare(b.name||'')); sel.innerHTML=members.map(m=>`<option value="${m.email}">${m.name}</option>`).join(''); }
+function renderTeam(){ const mount=document.getElementById('team-body'); mount.innerHTML=''; Object.entries(team).sort((a,b)=>a[1].name.localeCompare(b[1].name)).forEach(([id,m])=>{ mount.innerHTML += `<tr class="table-row"><td class="table-cell font-bold">${m.name}</td><td class="table-cell">${m.role||'-'}</td><td class="table-cell">$${m.wage||0}</td><td class="table-cell">${m.pin||'------'}</td><td class="table-cell text-right"><button onclick="editMember('${id}')">EDIT</button> <button onclick="deleteMember('${id}')">DEL</button></td></tr>`; }); }
+function renderTimesheets(){ const mount=document.getElementById('payroll-list'); mount.innerHTML=''; let grandTotal=0; const dateInput=document.getElementById('ts-date'); if(!dateInput.value) dateInput.valueAsDate = new Date(); const target=new Date(dateInput.value+'T00:00:00').toDateString(); const grouped={}; shifts.forEach(s=>{ if(!s.clockIn) return; const dIn=s.clockIn.toDate(); if(dIn.toDateString()!==target&&payrollMode==='daily') return; if(!grouped[s.email]) grouped[s.email]={punches:[],totalHrs:0,totalPay:0}; let hrs=0; if(s.clockOut){ hrs=(s.clockOut.toDate()-dIn)/3600000; } const pay=hrs*(team[s.email]?.wage||0); grouped[s.email].punches.push({...s,hrs,pay}); grouped[s.email].totalHrs+=hrs; grouped[s.email].totalPay+=pay; grandTotal+=pay; }); Object.entries(grouped).forEach(([email,data])=>{ const mem=team[email]||{name:email}; mount.innerHTML += `<div><div class="payroll-grid employee-summary" onclick="this.nextElementSibling.classList.toggle('hidden')"><div class="font-bold">${mem.name}</div><div>${data.punches.length} shifts</div><div>${data.totalHrs.toFixed(2)} hrs</div><div>$${data.totalPay.toFixed(2)}</div><span>▼</span></div><div class="hidden">${data.punches.map(p=>`<div class="payroll-grid punch-detail"><div>Punch Log</div><div>${p.clockIn.toDate().toLocaleTimeString()} - ${p.clockOut ? p.clockOut.toDate().toLocaleTimeString() : 'Active'}</div><div>${p.hrs.toFixed(2)}</div><div>$${p.pay.toFixed(2)}</div><button onclick="editTimecard('${p.id}')">edit</button></div>`).join('')}</div></div>`; }); safeSetText('ts-total', '$'+grandTotal.toFixed(2)); }
+function renderGrid(){ const mount=document.getElementById('sch-grid-mount'); const endWeek=new Date(weekStart); endWeek.setDate(endWeek.getDate()+6); safeSetText('sch-range', `${weekStart.toLocaleDateString()} - ${endWeek.toLocaleDateString()}`); const dates=[]; let html='<div class="sch-header"><div class="sch-col">Employee</div>'; for(let i=0;i<7;i++){ let d=new Date(weekStart); d.setDate(d.getDate()+i); dates.push(d); html+=`<div class="sch-col">${d.toLocaleDateString('en-US',{weekday:'short',day:'numeric'})}</div>`;} html+='</div>'; Object.values(team).sort((a,b)=>a.name.localeCompare(b.name)).forEach(mem=>{ html += `<div class="sch-row"><div class="user-col">${mem.name}</div>`; for(let i=0;i<7;i++){ const shiftsToday=schedule.filter(s=>s.email===mem.email && new Date(s.start.toDate?s.start.toDate():s.start).toDateString()===dates[i].toDateString()); html+='<div class="day-col">'; shiftsToday.forEach(s=>html += `<div class="shift ${String(mem.role||'').toLowerCase().includes('announcer')?'announcer':''}" onclick="editShift('${s.id}')">${s.start.toDate().toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</div>`); html += '</div>'; } html += '</div>'; }); mount.innerHTML = html; }
+async function saveMember(){ const email=document.getElementById('m-email').value; if(!email)return; await getCol('team').doc(email).set({name:document.getElementById('m-name').value,email,role:document.getElementById('m-role').value,wage:parseFloat(document.getElementById('m-wage').value||0),pin:document.getElementById('m-pin').value}); closeModal('modal-member'); loadData(); }
+async function saveShift(){ const data={ email:document.getElementById('s-staff').value,start:new Date(document.getElementById('s-start').value),end:new Date(document.getElementById('s-end').value)}; const id=document.getElementById('s-id').value; if(id) await getCol('schedule').doc(id).update(data); else await getCol('schedule').add(data); closeModal('modal-shift'); loadData(); }
+function editMember(id){ const u=team[id]; document.getElementById('m-id').value=id; document.getElementById('m-name').value=u.name||''; document.getElementById('m-email').value=u.email||''; document.getElementById('m-role').value=u.role||''; document.getElementById('m-wage').value=u.wage||0; document.getElementById('m-pin').value=u.pin||''; openModal('modal-member'); }
+async function deleteMember(id){ if(confirm('Delete staff member?')){ await getCol('team').doc(id).delete(); loadData(); } }
+function editShift(id){ const s=schedule.find(x=>x.id===id); document.getElementById('s-id').value=id; document.getElementById('s-staff').value=s.email; document.getElementById('s-del-btn').classList.remove('hidden'); openModal('modal-shift'); }
+async function deleteShift(){ const id=document.getElementById('s-id').value; await getCol('schedule').doc(id).delete(); closeModal('modal-shift'); loadData(); }
+function editTimecard(id){ const s=shifts.find(x=>x.id===id); document.getElementById('tc-id').value=id; const fmt=(d)=>{ if(!d) return ''; const x=d.toDate?d.toDate():new Date(d); x.setMinutes(x.getMinutes()-x.getTimezoneOffset()); return x.toISOString().slice(0,16); }; document.getElementById('tc-in').value=fmt(s.clockIn); document.getElementById('tc-out').value=fmt(s.clockOut); openModal('modal-tc'); }
+async function saveTimecard(){ const id=document.getElementById('tc-id').value; const dIn=new Date(document.getElementById('tc-in').value); const dOut=document.getElementById('tc-out').value?new Date(document.getElementById('tc-out').value):null; await getCol('shifts').doc(id).update({clockIn:dIn,clockOut:dOut,status:dOut?'closed':'open'}); closeModal('modal-tc'); loadData(); }
+function nav(v){ document.querySelectorAll('.view').forEach(e=>e.classList.remove('active')); document.getElementById('view-'+v).classList.add('active'); document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active')); document.getElementById('btn-'+v).classList.add('active'); if(v==='schedule') renderGrid(); }
+function openModal(id){ document.getElementById(id).style.display='flex'; if(id==='modal-shift'){ document.getElementById('s-id').value=''; document.getElementById('s-del-btn').classList.add('hidden'); } }
+function closeModal(id){ document.getElementById(id).style.display='none'; }
+function dateShift(d){ let dt=new Date((document.getElementById('ts-date').value || new Date().toISOString().slice(0,10))+'T12:00:00'); dt.setDate(dt.getDate()+d); document.getElementById('ts-date').valueAsDate=dt; renderTimesheets(); }
+function setPayrollMode(mode){ payrollMode=mode; document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.id==='tab-'+mode)); renderTimesheets(); }
+window.nav=nav; window.openModal=openModal; window.closeModal=closeModal; window.dateShift=dateShift; window.setPayrollMode=setPayrollMode; window.editMember=editMember; window.deleteMember=deleteMember; window.saveMember=saveMember; window.editShift=editShift; window.deleteShift=deleteShift; window.saveShift=saveShift; window.editTimecard=editTimecard; window.saveTimecard=saveTimecard; window.forceSeed=forceSeed; window.loadData=loadData;
+document.addEventListener('DOMContentLoaded', ()=>{ const dateInput=document.getElementById('ts-date'); if(dateInput) dateInput.valueAsDate=new Date(); init(); });
+</script>
+</body>
+</html>

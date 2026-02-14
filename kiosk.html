@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>BOOM | STUDIO KIOSK</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #F3F4F6; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        .text-brand { color: #FF5200; }
+        .bg-brand { background-color: #FF5200; color: white; }
+        .header { background: white; padding: 16px 24px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #E5E7EB; }
+        .brand-main,.brand-sub { font-weight: 900; font-style: italic; font-size: 24px; line-height: 1; letter-spacing: -0.05em; color: #111; }
+        .brand-sub { margin-top: -4px; opacity: 0.9; }
+        .clock { font-weight: 700; font-size: 16px; color: #6B7280; background: #F9FAFB; padding: 6px 12px; border-radius: 8px; border: 1px solid #E5E7EB; }
+        .view { display: none; flex: 1; flex-direction: column; overflow: hidden; }
+        .view.active { display: flex; }
+        .grid-container { flex: 1; overflow-y: auto; padding: 20px; display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; align-content: start; }
+        .card { background: white; border-radius: 16px; padding: 20px 12px; display: flex; flex-direction: column; align-items: center; text-align: center; border: 2px solid transparent; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.05); position: relative; }
+        .active-dot { position: absolute; top: 12px; right: 12px; width: 10px; height: 10px; background: #16A34A; border-radius: 50%; }
+        .avatar { width: 56px; height: 56px; border-radius: 50%; background: #FFF0E5; color: #FF5200; font-weight: 800; font-size: 20px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; overflow: hidden; }
+        .name { font-weight: 700; color: #111; font-size: 14px; }
+        .role { font-size: 10px; font-weight: 600; text-transform: uppercase; color: #9CA3AF; }
+        .time-in { font-family: monospace; font-size: 11px; color: #16A34A; background: #DCFCE7; padding: 2px 6px; border-radius: 4px; margin-top: 4px; font-weight: 700; }
+        .dash-layout { display: flex; flex: 1; padding: 20px; gap: 20px; overflow: hidden; flex-direction: column; }
+        .dash-action { background: white; border-radius: 20px; padding: 32px; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #E5E7EB; }
+        .dash-live { flex: 1; background: #F9FAFB; border-radius: 20px; border: 1px solid #E5E7EB; display: flex; flex-direction: column; overflow: hidden; }
+        .big-btn { width: 180px; height: 180px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 900; font-style: italic; font-size: 24px; }
+        .btn-green { background: #FF5200; color: white; border: 8px solid #FFF0E5; }
+        .btn-red { background: #EF4444; color: white; border: 8px solid #FEE2E2; }
+        .footer { padding: 16px; background: white; border-top: 1px solid #E5E7EB; text-align: center; }
+        .btn-back { background: #111; color: white; font-weight: 700; padding: 12px 24px; border-radius: 12px; display: inline-flex; align-items: center; gap: 8px; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; display: none; align-items: center; justify-content: center; }
+        .modal-box { background: white; width: 320px; border-radius: 24px; padding: 24px; text-align: center; }
+        .pin-dots { display: flex; justify-content: center; gap: 12px; margin-bottom: 24px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; background: #E5E7EB; }
+        .dot.filled { background: #FF5200; }
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+        .key { height: 60px; border-radius: 12px; background: #F3F4F6; font-size: 22px; font-weight: 600; color: #374151; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .status-msg { height: 24px; color: #6B7280; font-size: 11px; font-weight: 800; margin-top: 16px; text-transform: uppercase; }
+        #debug-bar { background: #111; color: #00FF00; font-family: monospace; font-size: 10px; padding: 4px 12px; display: flex; justify-content: space-between; }
+        .err-text { color: #EF4444; }
+    </style>
+</head>
+<body>
+<div class="header"><div><div class="brand-main">BOOM <span class="text-brand">106.9</span></div><div class="brand-sub">1KTV <span class="text-brand">112</span></div></div><div class="clock" id="clock">--:--</div></div>
+<div id="mode-banner" style="display:none;padding:10px 16px;font-size:12px;font-weight:800;letter-spacing:.06em;text-transform:uppercase"></div>
+<div id="view-roster" class="view active"><div class="p-4 text-center text-gray-400 text-xs font-bold uppercase" id="main-instruction">Initializing...</div><div class="grid-container" id="roster-grid"></div></div>
+<div id="view-dashboard" class="view"><div class="dash-layout"><div class="dash-action"><h2 class="text-2xl font-black italic mb-2" id="dash-name">USER</h2><div id="dash-status-badge" class="text-xs font-bold uppercase bg-gray-100 px-3 py-1 rounded-full text-gray-500 mb-8">Checking...</div><div id="action-btn" class="big-btn" onclick="performClockAction()"><span class="material-icons-round text-5xl mb-2">fingerprint</span><span id="btn-label">WAIT</span></div><div id="geo-msg" class="mt-6 text-[10px] uppercase font-black text-gray-400">GEOFENCE ACTIVE</div></div><div class="dash-live"><div class="p-4 border-b bg-white font-bold text-xs flex justify-between"><span>LIVE IN STUDIO</span><div class="text-green-500 tracking-widest">● LIVE</div></div><div class="grid-container" id="active-grid"></div></div></div><div class="footer"><button class="btn-back" onclick="logout()"><span class="material-icons-round">group</span> Switch User</button></div></div>
+<div id="pin-modal" class="modal-overlay"><div class="modal-box shadow-2xl"><h2 class="text-xl font-black text-gray-900 mb-6 uppercase" id="modal-name">User</h2><div class="pin-dots" id="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div><div class="keypad"><div class="key" onclick="press(1)">1</div><div class="key" onclick="press(2)">2</div><div class="key" onclick="press(3)">3</div><div class="key" onclick="press(4)">4</div><div class="key" onclick="press(5)">5</div><div class="key" onclick="press(6)">6</div><div class="key" onclick="press(7)">7</div><div class="key" onclick="press(8)">8</div><div class="key" onclick="press(9)">9</div><div class="key text-red-500 text-xs font-black" onclick="resetPin()">CLR</div><div class="key" onclick="press(0)">0</div><div class="key bg-brand text-white" onclick="submitPin()"><span class="material-icons-round">arrow_forward</span></div></div><div class="status-msg" id="status-msg">Enter PIN</div></div></div>
+<div id="debug-bar"><span id="log-auth">AUTH: ...</span><span id="log-db">DB: ...</span></div>
+
+<script>
+const appId='boom-clock-70599';
+const firebaseConfig={apiKey:"AIzaSyAgcWV2nt5wqR4WltSQyCFW0n8VF8yxqDc",authDomain:"boom-clock-70599.firebaseapp.com",projectId:"boom-clock-70599",storageBucket:"boom-clock-70599.firebasestorage.app",messagingSenderId:"1087213126999",appId:"1:1087213126999:web:7a711670f1b4977fd8ea12"};
+const initialToken=typeof __initial_auth_token!=='undefined'?__initial_auth_token:null;
+const BOOM_COORDS={lat:13.1538,lng:-61.2251}; const RADIUS=150;
+const FALLBACK_TEAM=[
+  {email:'jillccruickshank@gmail.com',name:'JILL',role:'ANNOUNCER',pin:'220717'},
+  {email:'imrangloster@gmail.com',name:'SHADY',role:'DJ',pin:'061815'},
+  {email:'djyungsource@gmail.com',name:'Dj YungSource',role:'DJ',pin:'164606'},
+  {email:'snapshotphotos28@gmail.com',name:'Domo Roberts',role:'ANNOUNCER',pin:'720261'}
+];
+let team=[],shifts=[],selectedUser=null,pin="",currentShiftId=null,rosterSub=null,shiftsSub=null,isOfflineMode=false;
+let authResolved=false;
+
+firebase.initializeApp(firebaseConfig); const db=firebase.firestore(); const auth=firebase.auth();
+function getCol(name){ return db.collection('artifacts').doc(appId).collection('public').doc('data').collection(name); }
+function setMain(msg){ document.getElementById('main-instruction').innerText=msg; }
+function setModeBanner(mode, text){
+  const el = document.getElementById('mode-banner');
+  el.style.display='block';
+  if(mode==='live'){
+    el.style.background='#dcfce7';
+    el.style.color='#166534';
+  } else if(mode==='connecting'){
+    el.style.background='#e0e7ff';
+    el.style.color='#3730a3';
+  } else {
+    el.style.background='#fff7ed';
+    el.style.color='#9a3412';
+  }
+  el.innerText=text;
+}
+
+async function start(){
+  setModeBanner('connecting', 'CONNECTING TO FIREBASE...');
+  setTimeout(() => {
+    if (!authResolved && !isOfflineMode) {
+      document.getElementById('log-auth').innerText='AUTH: TIMEOUT (offline mode)';
+      enableOfflineMode('Auth timeout - using local demo roster');
+    }
+  }, 5000);
+  try{
+    if(initialToken) await auth.signInWithCustomToken(initialToken); else await auth.signInAnonymously();
+    auth.onAuthStateChanged(user=>{
+      authResolved = true;
+      if(user){
+        document.getElementById('log-auth').innerText='AUTH: READY';
+        setModeBanner('live', 'LIVE MODE: FIREBASE CONNECTED');
+        setMain('SELECT PROFILE');
+        initDatabase();
+      } else if(!isOfflineMode) {
+        document.getElementById('log-auth').innerText='AUTH: NO USER (offline mode)';
+        enableOfflineMode('No auth user - using local demo roster');
+      }
+    });
+  }catch(e){
+    console.error(e);
+    document.getElementById('log-auth').innerText='AUTH: FAILED (offline mode)';
+    enableOfflineMode('AUTH FAILED - using local demo roster');
+  }
+}
+
+function enableOfflineMode(msg){
+  isOfflineMode=true;
+  setModeBanner('offline', 'OFFLINE DEMO MODE: FIREBASE UNAVAILABLE');
+  team=[...FALLBACK_TEAM];
+  shifts=[];
+  setMain('SELECT PROFILE (OFFLINE DEMO MODE)');
+  document.getElementById('log-db').innerText='DB: OFFLINE DEMO';
+  if(msg) console.warn(msg);
+  renderRosterGrid();
+  renderLiveGrid();
+}
+
+function initDatabase(){
+  if (!auth.currentUser) return;
+  if (rosterSub) rosterSub();
+  if (shiftsSub) shiftsSub();
+
+  rosterSub=getCol('team').onSnapshot(snap=>{
+    const next=[];
+    snap.forEach(doc=>next.push({id:doc.id,...doc.data()}));
+    team=next.sort((a,b)=>(a.name||'').localeCompare(b.name||''));
+    renderRosterGrid();
+    document.getElementById('log-db').innerText='DB: SYNCED';
+  }, err=>{
+    console.error(err);
+    document.getElementById('log-db').innerText='DB: ERROR';
+    if (!isOfflineMode) enableOfflineMode('Roster read failed');
+  });
+
+  shiftsSub=getCol('shifts').onSnapshot(snap=>{
+    shifts=[];
+    snap.forEach(doc=>shifts.push({id:doc.id,...doc.data()}));
+    if (document.getElementById('view-dashboard').classList.contains('active')) {
+      checkMyStatus();
+      renderLiveGrid();
+    }
+  }, err=>{
+    console.error(err);
+    if (!isOfflineMode) {
+      document.getElementById('log-db').innerText='DB: ERROR';
+      enableOfflineMode('Shifts read failed');
+    }
+  });
+}
+
+function renderRosterGrid(){
+  const grid=document.getElementById('roster-grid');
+  grid.innerHTML='';
+  if(!team.length){
+    grid.innerHTML='<div class="col-span-full text-center py-20 text-gray-400 font-bold uppercase">No profiles found. Add them in Admin.</div>';
+    return;
+  }
+  team.forEach(m=>{
+    const initials=(m.name||'??').substring(0,2).toUpperCase();
+    const card=document.createElement('div');
+    card.className='card';
+    card.onclick=()=>openPinPad(m);
+    card.innerHTML=`<div class="avatar"><img src="https://unavatar.io/${m.email}?fallback=false" class="w-full h-full object-cover rounded-full" onerror="this.style.display='none';this.parentElement.innerText='${initials}'"></div><div class="name">${(m.name||'').split(' ')[0]}</div><div class="role">${m.role||'Staff'}</div>`;
+    grid.appendChild(card);
+  });
+}
+
+function openPinPad(user){ selectedUser=user; pin=''; renderDots(); document.getElementById('modal-name').innerText=user.name; document.getElementById('status-msg').innerText='Enter Code'; document.getElementById('status-msg').classList.remove('err-text'); document.getElementById('pin-modal').style.display='flex'; }
+function press(n){ if(pin.length<6){ pin += n; renderDots(); } }
+function resetPin(){ pin=''; renderDots(); }
+function renderDots(){ const d=document.getElementById('dots').children; for(let i=0;i<6;i++) d[i].classList.toggle('filled',i<pin.length); }
+
+async function submitPin(){
+  if(pin!==selectedUser.pin){
+    document.getElementById('status-msg').innerText='WRONG PIN';
+    document.getElementById('status-msg').classList.add('err-text');
+    setTimeout(()=>{ document.getElementById('status-msg').innerText='Enter PIN'; document.getElementById('status-msg').classList.remove('err-text'); resetPin(); },1000);
+    return;
+  }
+  const active=shifts.find(s=>s.email===selectedUser.email&&s.status==='open');
+  if(active) performClockAction(active.id);
+  else { document.getElementById('pin-modal').style.display='none'; showDashboard(); }
+}
+
+function showDashboard(){ document.getElementById('view-roster').classList.remove('active'); document.getElementById('view-dashboard').classList.add('active'); document.getElementById('dash-name').innerText=selectedUser.name; checkMyStatus(); renderLiveGrid(); }
+function checkMyStatus(){ const active=shifts.find(s=>s.email===selectedUser.email&&s.status==='open'); const btn=document.getElementById('action-btn'),lbl=document.getElementById('btn-label'),bdg=document.getElementById('dash-status-badge'); if(active){ currentShiftId=active.id; btn.className='big-btn btn-red'; lbl.innerText='CLOCK OUT'; bdg.innerText='ON THE CLOCK'; bdg.className='text-xs font-bold uppercase bg-green-100 px-3 py-1 rounded-full text-green-600 mb-8'; } else { currentShiftId=null; btn.className='big-btn btn-green'; lbl.innerText='CLOCK IN'; bdg.innerText='OFF DUTY'; bdg.className='text-xs font-bold uppercase bg-gray-100 px-3 py-1 rounded-full text-gray-400 mb-8'; } }
+
+function renderLiveGrid(){
+  const grid=document.getElementById('active-grid');
+  grid.innerHTML='';
+  const active=shifts.filter(s=>s.status==='open');
+  if(!active.length){ grid.innerHTML='<div class="col-span-full text-center text-gray-400 text-xs font-bold uppercase tracking-widest mt-10">Studio is empty.</div>'; return; }
+  active.forEach(s=>{
+    const mem=team.find(m=>m.email===s.email)||{name:s.name,role:'Staff',email:s.email};
+    const initials=(mem.name||'??').substring(0,2).toUpperCase();
+    const card=document.createElement('div');
+    card.className='card border-green-50 shadow-sm';
+    card.onclick=()=>openPinPad(mem);
+    const clockInText=s.clockIn?.toDate ? s.clockIn.toDate().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : '--:--';
+    card.innerHTML=`<div class="active-dot"></div><div class="avatar"><img src="https://unavatar.io/${s.email}?fallback=false" class="w-full h-full object-cover rounded-full" onerror="this.style.display='none';this.parentElement.innerText='${initials}'"></div><div class="name">${(mem.name||'').split(' ')[0]}</div><div class="role">${mem.role||'Staff'}</div><div class="time-in">IN: ${clockInText}</div>`;
+    grid.appendChild(card);
+  });
+}
+
+async function performClockAction(forceId=null){
+  if(isOfflineMode){
+    const openShift=shifts.find(s=>s.email===selectedUser.email&&s.status==='open');
+    if(openShift) openShift.status='closed';
+    else shifts.push({id:String(Date.now()),email:selectedUser.email,name:selectedUser.name,clockIn:new Date(),status:'open'});
+    checkMyStatus(); renderLiveGrid();
+    document.getElementById('pin-modal').style.display='none';
+    return;
+  }
+
+  const id=forceId||currentShiftId;
+  const geoMsg=document.getElementById('geo-msg');
+  const pinMsg=document.getElementById('status-msg');
+  const updateStatus=(t)=>{ geoMsg.innerText=t.toUpperCase(); if(document.getElementById('pin-modal').style.display==='flex') pinMsg.innerText=t.toUpperCase(); };
+  updateStatus('GETTING GPS...');
+  navigator.geolocation.getCurrentPosition(async(pos)=>{
+    const R=6371e3, φ1=pos.coords.latitude*Math.PI/180, φ2=BOOM_COORDS.lat*Math.PI/180, Δφ=(BOOM_COORDS.lat-pos.coords.latitude)*Math.PI/180, Δλ=(BOOM_COORDS.lng-pos.coords.longitude)*Math.PI/180;
+    const a=Math.sin(Δφ/2)**2 + Math.cos(φ1)*Math.cos(φ2)*Math.sin(Δλ/2)**2;
+    const dist=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+    if(dist>RADIUS){ alert(`ACCESS DENIED: You are ${Math.round(dist)}m away from BOOM building.`); updateStatus('Range Failed'); return; }
+    updateStatus('SYNCING...');
+    const ref=getCol('shifts');
+    if(id){ await ref.doc(id).update({clockOut:firebase.firestore.FieldValue.serverTimestamp(),status:'closed'}); logout(); }
+    else { await ref.add({email:selectedUser.email,name:selectedUser.name,clockIn:firebase.firestore.FieldValue.serverTimestamp(),status:'open'}); checkMyStatus(); }
+    document.getElementById('pin-modal').style.display='none';
+    updateStatus('GEOFENCE ACTIVE');
+  },()=>{ alert('GPS Required for clock actions.'); updateStatus('GPS Error'); },{enableHighAccuracy:true,timeout:5000});
+}
+
+function logout(){ document.getElementById('view-dashboard').classList.remove('active'); document.getElementById('view-roster').classList.add('active'); document.getElementById('pin-modal').style.display='none'; selectedUser=null; pin=''; }
+window.addEventListener('keydown',(e)=>{ if(document.getElementById('pin-modal').style.display!=='flex') return; if(e.key>='0'&&e.key<='9') press(e.key); else if(e.key==='Backspace') resetPin(); else if(e.key==='Enter') submitPin(); else if(e.key==='Escape') logout(); });
+setInterval(()=>{ document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); },1000);
+start();
+</script>
+</body>
+</html>
